@@ -10,6 +10,8 @@
 # ============================================================
 import numpy as np
 import pandas as pd
+!pip install japanize-matplotlib --quiet
+import japanize_matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
@@ -21,7 +23,7 @@ from sklearn.decomposition import PCA
 import warnings
 warnings.filterwarnings('ignore')
 
-plt.rcParams['font.family'] = 'IPAexGothic'
+# plt.rcParams['font.family'] = 'IPAexGothic'
 plt.rcParams['figure.facecolor'] = '#0f1117'
 plt.rcParams['axes.facecolor'] = '#1a1d2e'
 plt.rcParams['axes.edgecolor'] = '#3a3d4f'

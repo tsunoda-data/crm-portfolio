@@ -10,8 +10,14 @@
 # ============================================================
 import numpy as np
 import pandas as pd
-!pip install japanize-matplotlib --quiet
-import japanize_matplotlib
+import sys
+import subprocess
+
+try:
+    import japanize_matplotlib
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "japanize-matplotlib", "--quiet"])
+    import japanize_matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec

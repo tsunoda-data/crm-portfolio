@@ -13,10 +13,12 @@ import warnings
 import random
 import numpy as np
 import pandas as pd
+import sys
+import subprocess
 try:
     import japanize_matplotlib
 except ModuleNotFoundError:
-    !pip install japanize-matplotlib --quiet
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "japanize-matplotlib", "--quiet"])
     import japanize_matplotlib
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta

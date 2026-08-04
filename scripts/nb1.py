@@ -13,8 +13,11 @@ import warnings
 import random
 import numpy as np
 import pandas as pd
-!pip install japanize-matplotlib --quiet
-import japanize_matplotlib
+try:
+    import japanize_matplotlib
+except ModuleNotFoundError:
+    !pip install japanize-matplotlib --quiet
+    import japanize_matplotlib
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 

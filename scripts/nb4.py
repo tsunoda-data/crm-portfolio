@@ -55,7 +55,7 @@ CHURN_FEATURES = [
     'login_days_30', 'avg_session_duration', 'favorites_count', 'abandoned_carts', 'review_count',
     'email_open_count', 'is_subscriber', 'repurchased_after_low_review', 'days_since_signup',
     'purchase_span_days', 'email_open_per_month', 'main_category_enc', 'main_device_enc',
-    'traffic_channel_enc', 'purchase_hour_enc', 'segment_enc', 'sns_sentiment_score',
+    'traffic_channel_enc', 'purchase_hour_zone_enc', 'segment_label_enc', 'sns_sentiment_score',
     'competitor_price_diff', 'brand_trend_exposure', 'avg_review_score_filled'
 ]
 X = df_churn[CHURN_FEATURES]

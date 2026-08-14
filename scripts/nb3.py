@@ -50,8 +50,11 @@ CLUSTER_FEATURES = [
 ]
 
 df_ml = df[CLUSTER_FEATURES].copy()
-df_ml['avg_order_value'] = df_ml['avg_order_value'].fillna(0)
-df_ml['avg_review_score'] = df.get('avg_review_score', pd.Series(dtype='float64'))
+if 'avg_review_score' in df.columns:
+    df_ml['avg_review_score'] = df['avg_review_score'].fillna(0)
+
+df_ml = df_ml.fillna(0)
+
 
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(df_ml)

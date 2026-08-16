@@ -1,8 +1,15 @@
 # %% [markdown]
 # # 📓 Notebook 1: データ生成 & クレンジング
 # 
-# 実務未経験からのポートフォリオ用として、10,000人規模のCRMデータを生成し、
-# 意図的な汚れの混入からクレンジング、Parquet形式での保存までを一気通貫で行います。
+# ## 📊 Executive Summary
+# 
+# | 項目 | 内容 |
+# |------|------|
+# | **ビジネス課題** | 顧客10,000人のCRMデータから離脱リスクの高い顧客を早期発見し、パーソナライズ施策でLTV最大化を実現する |
+# | **使用データ** | 顧客属性(年齢・性別・地域) × 行動データ(購入・ログイン・カゴ落ち) × 外部環境(SNS感情・競合価格・トレンド) = 28カラム |
+# | **このNotebookの役割** | ①合成データ生成 → ②意図的な汚れ注入 → ③実務水準のクレンジング → ④Parquet保存 |
+# | **主要な発見** | 上位20%が売上の約55%を占めるパレート構造 / 深夜帯にカゴ落ちが集中する行動パターン |
+# | **期待されるROIインパクト** | Notebook 4の離脱防止施策により年間 ¥1,500万〜¥4,000万の売上回収を見込む（本NB内で算出される前提データに基づく） |
 
 # %%
 # ============================================================
@@ -15,6 +22,8 @@ import numpy as np
 import pandas as pd
 import sys
 import subprocess
+import os
+
 try:
     import japanize_matplotlib
 except ModuleNotFoundError:
@@ -205,7 +214,6 @@ df_clean.loc[outliers_mask, 'total_spend'] = upper_bound
 print("  ✅ 外れ値のキャップ処理 (IQR法)")
 
 # 5. ビジネス的矛盾の修正
-# 購入回数0なのに金額がある場合 → 金額を0にする
 contradictions = (df_clean['order_count'] == 0) & (df_clean['total_spend'] > 0)
 df_clean.loc[contradictions, 'total_spend'] = 0
 print("  ✅ ビジネス矛盾の修正")
@@ -217,8 +225,8 @@ print("  ✅ 欠損値の補完")
 
 # 7. 派生変数の再計算
 df_clean['avg_order_value'] = np.where(
-    df_clean['order_count'] > 0, 
-    df_clean['total_spend'] / df_clean['order_count'], 
+    df_clean['order_count'] > 0,
+    df_clean['total_spend'] / df_clean['order_count'],
     0
 )
 print("  ✅ 派生変数の再計算")
@@ -227,8 +235,6 @@ print("  ✅ 派生変数の再計算")
 # ============================================================
 # 【セル5】品質確認とParquet形式での保存
 # ============================================================
-import os
-
 print("--- 最終データの品質確認 ---")
 assert df_clean['total_spend'].max() <= upper_bound, "外れ値が残っています"
 assert df_clean['age'].isnull().sum() == 0, "年齢に欠損値が残っています"
@@ -237,8 +243,8 @@ assert 'email' not in df_clean.columns, "平文のメールアドレスが残っ
 
 print("  ✅ アサーションテスト全パス！")
 
-# 保存ディレクトリの作成
-OUTPUT_DIR = '/Users/user/projects/crm-portfolio/notebooks/data'
+# 保存ディレクトリの作成（相対パス: GitHub clone後すぐ動く）
+OUTPUT_DIR = './data'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 PARQUET_PATH = os.path.join(OUTPUT_DIR, 'notebook1_cleaned_data.parquet')
 

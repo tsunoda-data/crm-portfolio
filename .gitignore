@@ -1,3 +1,9 @@
-notebooks/
-.DS_Store
 data/
+models/
+logs/
+notebooks/
+.venv/
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/

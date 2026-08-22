@@ -1,0 +1,105 @@
+pipeline:
+  run_date: "auto"           # "auto" = today, or "2026-08-21"
+  data_dir: "./data"
+  log_dir: "./logs"
+  model_dir: "./models"
+
+  steps:                     # 実行するステップ (CLI --steps で上書き可)
+    - ingest
+    - quality_check
+    - features
+    - segment
+    - score
+    - export
+
+# ============================================================
+# ビジネスパラメータ
+# ============================================================
+business:
+  mail_cost_per_send: 3          # ¥/通
+  coupon_usage_rate: 0.40        # 40%
+  cac: 5000                      # 顧客獲得コスト ¥/人
+  churn_threshold: 0.60          # 離脱リスク閾値
+
+  retention_rates:               # 離脱防止成功率
+    email: 0.08
+    coupon: 0.15
+    personalized: 0.22
+
+  discount_rates: [0.05, 0.10, 0.15, 0.20, 0.30]
+
+  seg_uplift_multiplier:         # セグメント別uplift係数 (A/Bテスト実績で上書き)
+    Seg1_ロイヤル顧客: 0.3
+    Seg2_一般顧客: 0.5
+    Seg3_離反顧客: 0.8
+    Seg4_見込み優良顧客: 0.6
+    Seg5_見込み一般顧客: 0.5
+    Seg6_休眠顧客: 0.7
+    Seg7_潜在認知顧客: 0.4
+    Seg8_深夜葛藤層: 0.9
+    Seg9_低評価中毒層: 0.6
+
+# ============================================================
+# データ生成（合成データ用）
+# ============================================================
+synthetic:
+  n_customers: 10000
+  start_date: "2023-01-01"
+  end_date: "2026-05-31"
+  random_seed: 42
+
+# ============================================================
+# モデル設定
+# ============================================================
+model:
+  churn:
+    type: lightgbm
+    objective: binary
+    metric: auc
+    num_leaves: 63
+    learning_rate: 0.05
+    num_boost_round: 500
+    early_stopping_rounds: 50
+    retrain_if_auc_below: 0.80
+    churn_days: 90               # N日未購入で離脱
+
+  ltv:
+    type: lightgbm
+    objective: regression
+    metric: rmse
+    num_leaves: 127
+    learning_rate: 0.05
+    num_boost_round: 500
+    early_stopping_rounds: 50
+    retrain_if_r2_below: 0.50
+
+# ============================================================
+# ドリフト検知
+# ============================================================
+drift:
+  psi_warning: 0.10
+  psi_critical: 0.20
+  check_features:               # 監視対象の特徴量
+    - order_count
+    - total_spend
+    - login_days_30
+    - abandoned_carts
+    - email_open_count
+
+# ============================================================
+# A/Bテスト
+# ============================================================
+ab_test:
+  control_ratio: 0.20            # Control群の割合
+  significance_level: 0.05       # 有意水準
+  min_sample_per_group: 100      # 最小サンプルサイズ
+  measurement_days: [7, 14, 30]  # 効果測定タイミング
+
+# ============================================================
+# GCP設定（将来のクラウド移行用）
+# ============================================================
+gcp:
+  project_id: "crm-portfolio-prod"
+  dataset: "crm_analytics"
+  bucket: "gs://crm-portfolio-data"
+  region: "asia-northeast1"

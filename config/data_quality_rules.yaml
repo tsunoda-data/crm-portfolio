@@ -1,0 +1,51 @@
+expected_columns:
+  - customer_id
+  - customer_hash
+  - age
+  - gender
+  - region
+  - signup_date
+  - main_device
+  - traffic_channel
+  - login_days_30
+  - avg_session_duration
+  - favorites_count
+  - order_count
+  - total_spend
+  - is_subscriber
+  - first_order_date
+  - last_order_date
+  - purchase_hour_zone
+  - abandoned_carts
+  - coupon_uses
+  - review_count
+  - avg_review_score
+  - repurchased_after_low_review
+  - sns_sentiment_score
+  - competitor_price_diff
+  - brand_trend_exposure
+  - main_category
+  - email_open_count
+  - avg_order_value
+
+max_null_rates:
+  age: 0.0
+  region: 0.0
+  avg_review_score: 0.8
+  first_order_date: 0.5
+  last_order_date: 0.5
+
+value_ranges:
+  age:
+    min: 18
+    max: 80
+  total_spend:
+    min: 0
+  order_count:
+    min: 0
+
+row_count:
+  min: 100
+  max: 100000
+
+key_column: "customer_id"

@@ -31,7 +31,7 @@ expected_columns:
 max_null_rates:
   age: 0.0
   region: 0.0
-  avg_review_score: 0.8
+  avg_review_score: 0.95   # レビュー投稿者のみに存在するため高欠損率が正常
   first_order_date: 0.5
   last_order_date: 0.5
 

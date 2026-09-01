@@ -16,9 +16,31 @@ import time
 from datetime import date
 from pathlib import Path
 
-# プロジェクトルートをパスに追加
+# ============================================================
+# パス解決: src/models/ と models/ の両方に対応
+# Cloud Shell や各種環境でのモジュール配置の差異を吸収する
+# ============================================================
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# src/models が存在しない場合は src/ を sys.path に追加して
+# models/ を src.models として解決できるようにする
+_src_models = PROJECT_ROOT / "src" / "models"
+_root_models = PROJECT_ROOT / "models"
+if not _src_models.exists() and _root_models.exists():
+    # models/ が直下にある環境（Cloud Shell など）
+    # src/ がなければ src/ を作って models/ へのシムを張る代わりに
+    # src ディレクトリを sys.path に追加してインポートを解決
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+
+def _smart_import(src_path: str, fallback_path: str):
+    """src.X.Y が失敗した場合に X.Y (srcなし) でフォールバックするimport helper"""
+    import importlib
+    try:
+        return importlib.import_module(src_path)
+    except ModuleNotFoundError:
+        return importlib.import_module(fallback_path)
 
 from src.config import load_config, reset_config_cache, get_pipeline_paths
 
@@ -96,24 +118,29 @@ def run_step(step_name: str, cfg: dict, logger: logging.Logger, context: dict) -
         logger.info(f"特徴量生成完了: {df.shape[1]} カラム")
 
     elif step_name == "segment":
-        from src.pipeline.segment import fit_segments, apply_psychology_segments, get_segment_summary
+        from src.pipeline.segment import fit_segments, predict_segments, apply_psychology_segments, get_segment_summary
         from src.pipeline.ingest import save_checkpoint
         logger.info("=" * 60)
         logger.info("STEP: segment — セグメンテーション")
         logger.info("=" * 60)
         df = context["df_features"]
-        df, seg_artifacts = fit_segments(df)
+        # fit_segments は (kmeans, scaler, profile_scaled, thresholds) の4タプルを返す
+        kmeans, scaler, profile_scaled, thresholds = fit_segments(df)
+        # predict_segments で segment_label カラムをDataFrameに付与する
+        df = predict_segments(df, kmeans, scaler, profile_scaled, thresholds)
         df = apply_psychology_segments(df)
         summary = get_segment_summary(df)
         logger.info(f"セグメント分布:\n{summary}")
         save_checkpoint(df, "segmented", cfg)
         context["df_segmented"] = df
-        context["seg_artifacts"] = seg_artifacts
+        context["seg_artifacts"] = {"kmeans": kmeans, "scaler": scaler,
+                                    "profile_scaled": profile_scaled, "thresholds": thresholds}
 
     elif step_name == "score":
         from src.pipeline.score import score_churn, score_ltv, classify_risk
         from src.pipeline.features import CHURN_FEATURE_COLUMNS, LTV_FEATURE_COLUMNS
-        from src.models.registry import ModelRegistry
+        _reg_mod = _smart_import("src.models.registry", "models.registry")
+        ModelRegistry = _reg_mod.ModelRegistry
         logger.info("=" * 60)
         logger.info("STEP: score — モデルスコアリング")
         logger.info("=" * 60)
@@ -128,7 +155,9 @@ def run_step(step_name: str, cfg: dict, logger: logging.Logger, context: dict) -
             logger.info(f"モデル読み込み: churn v{churn_meta['version']}, ltv v{ltv_meta['version']}")
         except FileNotFoundError:
             logger.info("学習済みモデルが見つかりません。新規学習を実行します。")
-            from src.models.train import train_churn_model, train_ltv_model
+            _train_mod = _smart_import("src.models.train", "models.train")
+            train_churn_model = _train_mod.train_churn_model
+            train_ltv_model = _train_mod.train_ltv_model
             from src.pipeline.features import CHURN_FEATURE_COLUMNS, LTV_FEATURE_COLUMNS
             from sklearn.model_selection import train_test_split
             import pandas as pd
@@ -162,7 +191,21 @@ def run_step(step_name: str, cfg: dict, logger: logging.Logger, context: dict) -
         logger.info("STEP: export — キャンペーンリスト出力")
         logger.info("=" * 60)
         df = context.get("df_scored", context.get("df_segmented"))
-        campaign_df = generate_campaign_list(df, cfg)
+
+        # セグメント別アクション定義: {segment_label: (action_name, discount_rate, timing)}
+        segment_actions = cfg.get("campaigns", {}).get("segment_actions") or {
+            "Seg1_ロイヤル顧客":    ("VIP感謝キャンペーン",   0.05, "週次"),
+            "Seg2_一般顧客":        ("リピート促進クーポン",   0.10, "月次"),
+            "Seg3_離反顧客":        ("カムバックオファー",     0.20, "即時"),
+            "Seg4_見込み優良顧客":  ("初回購入サポート",       0.15, "週次"),
+            "Seg5_見込み一般顧客":  ("お試しクーポン",         0.10, "月次"),
+            "Seg6_休眠顧客":        ("再活性化キャンペーン",   0.25, "即時"),
+            "Seg7_潜在認知顧客":    ("ブランド体験クーポン",   0.10, "月次"),
+            "Seg8_深夜葛藤層":      ("深夜限定フラッシュセール", 0.15, "深夜限定"),
+            "Seg9_低評価中毒層":    ("品質改善お詫びオファー", 0.30, "即時"),
+        }
+
+        campaign_df = generate_campaign_list(df, segment_actions, cfg)
         output_path = Path(cfg["pipeline"]["data_dir"]) / f"campaign_list_{cfg['pipeline']['run_date']}.csv"
         export_to_csv(campaign_df, output_path)
         save_checkpoint(df, "scored_final", cfg)

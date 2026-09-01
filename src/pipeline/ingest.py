@@ -136,8 +136,10 @@ def cleanse(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     IQR = Q3 - Q1
     upper_bound = Q3 + 1.5 * IQR
 
+    # pandas 2.x では型の一致が厳格。total_spend の dtype に合わせてキャスト
+    upper_bound_casted = int(upper_bound) if df_clean['total_spend'].dtype == 'int64' else upper_bound
     outliers_mask = df_clean['total_spend'] > upper_bound
-    df_clean.loc[outliers_mask, 'total_spend'] = upper_bound
+    df_clean.loc[outliers_mask, 'total_spend'] = upper_bound_casted
 
     contradictions = (df_clean['order_count'] == 0) & (df_clean['total_spend'] > 0)
     df_clean.loc[contradictions, 'total_spend'] = 0

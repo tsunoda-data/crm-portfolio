@@ -1,9 +1,12 @@
-data/
-models/
-logs/
-notebooks/
+# === アーティファクト（実行時に生成されるファイル） ===
+/data/
+/models/
+/logs/
+
+# === 環境・キャッシュ ===
 .venv/
 .DS_Store
 __pycache__/
 *.pyc
 .pytest_cache/
+notebooks/
